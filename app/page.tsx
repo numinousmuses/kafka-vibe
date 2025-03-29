@@ -401,26 +401,28 @@ export default function Home() {
                 setLocalActivePanel("workspace");
                 // Now update the selected file name so that your useEffect in WorkspacePanel fires
                 setSelectedBasedFileName(fileContent.based_filename);
+
+                toast({
+                  title: "New Based File Generated",
+                  description:  `${fileContent.based_filename} has been added to the workspace.`,
+                })
+  
+                // Update chat history
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    type: "file",
+                    role: responseData.role,
+                    diff: responseData.diff ? true : false,
+                    content:
+                      typeof fileContent === "string"
+                        ? fileContent
+                        : JSON.stringify(fileContent),
+                  },
+                ]);
               }, 3200); // Adjust delay as needed
 
-              toast({
-                title: "New Based File Generated",
-                description:  `${fileContent.based_filename} has been added to the workspace.`,
-              })
-
-              // Update chat history
-              setMessages((prev) => [
-                ...prev,
-                {
-                  type: "file",
-                  role: responseData.role,
-                  diff: responseData.diff ? true : false,
-                  content:
-                    typeof fileContent === "string"
-                      ? fileContent
-                      : JSON.stringify(fileContent),
-                },
-              ]);
+              
 
             }
           } else {
@@ -1156,7 +1158,7 @@ export default function Home() {
                       align="start"
                       className="w-48 rounded-none text-[12px]"
                     >
-                      <ScrollArea className="max-h-[50vh] h-fit">
+                      <ScrollArea className="max-h-[50vh] overflow-y-scroll h-fit">
                         {chatlist.length > 0 ? (
                           [...chatlist].reverse().map((chat: any) => (
                           <DropdownMenuItem
