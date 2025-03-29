@@ -679,61 +679,44 @@ export function WorkspacePanel({
   const handleDownloadFile = async (file: FileItem, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    try {
-      let downloadUrl = file.url;
-
-      window.alert("FILE URL" + JSON.stringify(file));
-
-      // Check if the URL is an S3 URL that might need signing
-      if (file.url?.includes("s3.") && file.url?.includes("amazonaws.com")) {
-        window.alert("S3 URL");
-        // Get a signed URL for the file to ensure access
-        const signedUrlResponse = await fetch("/api/s3/sign-get", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            key: file.id,
-            contentType:
-              file.type === "pdf" || file.name.endsWith(".pdf")
-                ? "application/pdf"
-                : file.type === "csv" || file.name.endsWith(".csv")
-                ? "text/csv"
-                : file.type === "markdown" || file.name.endsWith(".md")
-                ? "text/markdown"
-                : "text/plain",
-          }),
-        });
-
-        window.alert("SIGNED URL RESPONSE" + JSON.stringify(signedUrlResponse));
-
-        if (signedUrlResponse.ok) {
-          const { signedUrl } = await signedUrlResponse.json();
-          downloadUrl = signedUrl;
-        }
-      }
-
-      // Create a temporary anchor element to trigger the download
-      const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
+    // Only allow downloading for based files
+    if (!file.name.includes(".based")) {
       toast({
-        title: "Download started",
-        description: `Downloading ${file.name}`,
-      });
-    } catch (error) {
-      console.error("Download failed:", error);
-      toast({
-        title: "Download failed",
-        description: "There was an error downloading your file.",
+        title: "Download not supported",
+        description: "Only based files can be downloaded.",
         variant: "destructive",
       });
+      return;
     }
+
+    // Use latest_content if available; fallback to file.content
+    const fileContent = file.content;
+    if (!fileContent) {
+      toast({
+        title: "No Content",
+        description: "There is no content available for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create a blob with the based file content
+    const blob = new Blob([fileContent], { type: "text/plain" });
+    const downloadUrl = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element to trigger the download
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(downloadUrl);
+
+    toast({
+      title: "Download started",
+      description: `Downloading ${file.name}`,
+    });
   };
 
   // Add this function to handle sending messages
