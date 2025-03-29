@@ -171,60 +171,63 @@ export default function Home() {
   // Initialize chat when component mounts - check URL for chat ID
   useEffect(() => {
     const initChat = async () => {
-      // Check if there's a chat ID in the URL
+      // Retrieve chatId from URL, if present
       const urlParams = new URLSearchParams(window.location.search);
       const urlChatId = urlParams.get("chatId");
-
+  
       if (authResponse) {
-        // Create new agent chat
-        try {
-          const formData = new FormData();
-          formData.append("user_id", authResponse.user_id);
-          formData.append(
-            "workspace_id",
-            authResponse.workspaces[0]?.id || "default"
-          );
-          formData.append("chat_name", "New Agent");
-
-          const response = await fetch(`${BACKEND_BASE_URL}chat/new`, {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            throw new Error(`Failed to create chat: ${response.status}`);
+          if (urlChatId) {
+              // If a valid chatId exists in the URL, use it as the active chat.
+              setChatId(urlChatId);
+              console.log("Using existing chat from URL with ID:", urlChatId);
+              setChatlist(authResponse.workspaces.flatMap((workspace) => workspace.chats) || []);
+              setChatName(authResponse.workspaces[0]?.chats.find((chat: any) => chat.id === urlChatId)?.name || "");
+          } else {
+              // Otherwise, create a new chat as before.
+              try {
+                const formData = new FormData();
+                formData.append("user_id", authResponse.user_id);
+                formData.append("workspace_id", authResponse.workspaces[0]?.id || "default");
+                formData.append("chat_name", "New Agent");
+  
+                const response = await fetch(`${BACKEND_BASE_URL}chat/new`, {
+                  method: "POST",
+                  body: formData,
+                });
+  
+                if (!response.ok) {
+                  throw new Error(`Failed to create chat: ${response.status}`);
+                }
+  
+                const chatData: ChatNewResponse = await response.json();
+                setChatId(chatData.chat_id);
+                setChatName(chatData.name);
+                console.log("Created new chat with ID:", chatData.chat_id);
+  
+                // Update the URL with the new chatId without reloading the page.
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set("chatId", chatData.chat_id);
+                window.history.pushState({}, "", newUrl);
+              } catch (error) {
+                console.error("Error creating chat:", error);
+              }
+  
+              setChatlist(authResponse.workspaces.flatMap((workspace) => workspace.chats) || []);
           }
-
-          const chatData: ChatNewResponse = await response.json();
-          setChatId(chatData.chat_id);
-          setChatName(chatData.name);
-          console.log("Created new chat with ID:", chatData.chat_id);
-
-          // Update URL with chat ID without reloading the page
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.set("chatId", chatData.chat_id);
-          window.history.pushState({}, "", newUrl);
-
-        } catch (error) {
-          console.error("Error creating chat:", error);
-        }
-
-        setChatlist(authResponse.workspaces.flatMap((workspace) => workspace.chats) || []);
+  
+          // Load models as before.
+          if (authResponse && authResponse.models.length > 0) {
+            setModel(authResponse.models[0].name);
+            setModelList(authResponse.models);
+          } else if (authResponse && authResponse.models.length === 0) {
+            try {
+              await handleAddNewModel(authResponse.user_id, defaultModel.name, defaultModel.ak!, defaultModel.base_url!);
+            } catch (error) {
+              console.log("Error adding new model:", error);
+            }
+          }
       }
-      
-
-      if (authResponse && authResponse?.models.length > 0) {
-        setModel(authResponse.models[0].name);
-        setModelList(authResponse.models);
-        
-      } else if (authResponse && authResponse?.models.length === 0) {
-        try {
-          await handleAddNewModel(authResponse?.user_id || "", defaultModel.name, defaultModel.ak!, defaultModel.base_url!);
-        } catch (error) {
-          console.log("Error adding new model:", error);
-        }
-      }
-    };
+  };
 
     initChat();
   }, [authResponse]);
