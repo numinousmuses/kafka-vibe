@@ -1440,6 +1440,7 @@ export default function Home() {
             <ResizablePanel
               defaultSize={workspacePanelOpen ? 40 : 100}
               minSize={30}
+              className="relative"
             >
               <div className="container mx-auto px-4 py-8 h-full overflow-auto relative">
                 <div className="space-y-6 pb-32">
@@ -1448,7 +1449,8 @@ export default function Home() {
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[640px] max-w-[calc(100%-32px)] z-50">
+              </div>
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[640px] max-w-[calc(100%-32px)] z-50">
                   <div className="bg-background/80 backdrop-blur-xl rounded-none border shadow-lg">
                     {!connected && (
                       <div className="p-2 bg-red-500/10 text-red-500 text-xs text-center">
@@ -1467,8 +1469,9 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
-              </div>
             </ResizablePanel>
+
+            
 
             {workspacePanelOpen && (
               <>
