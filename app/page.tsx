@@ -272,6 +272,7 @@ export default function Home() {
           setMessages(data.conversation || []);
           setWorkspaceFiles(data.chat_files || []);
           setBasedFiles(data.chat_files_based || []);
+          setSelectedBasedFileName(data.chat_files_based[0]?.name || "");
           return; // do nothing else for now
         }
   
@@ -296,10 +297,18 @@ export default function Home() {
 
             console.log("Received file response:", responseData);
 
-            const fileContent =
-              typeof responseData.content === "string"
-                ? JSON.parse(responseData.content)
-                : responseData.content;
+            // Use a check like this:
+            let fileContent;
+            if (typeof responseData.content === "string") {
+              if (responseData.content.trim().startsWith("{")) {
+                fileContent = JSON.parse(responseData.content);
+              } else {
+                // It’s a plain text diff – use it as is.
+                fileContent = responseData.content;
+              }
+            } else {
+              fileContent = responseData.content;
+            }
 
             // Update chat history
             setMessages((prev) => [
@@ -497,7 +506,7 @@ export default function Home() {
           // add a 0.5 second delay to allow the panel to open
           setTimeout(() => {
             setLocalActivePanel("integrations");
-          }, 500);
+          }, 400);
           
           // Save the selected tools coming from the server
           setSelectedTools(data.tools); // data.tools is an array of tool names
