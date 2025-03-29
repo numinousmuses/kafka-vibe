@@ -341,6 +341,10 @@ interface WorkspacePanelProps {
   setBasedFiles: React.Dispatch<React.SetStateAction<ChatFileBased[]>>;
   setSelectedBasedFileContent: React.Dispatch<React.SetStateAction<string>>;
   selectedBasedFileName: string;
+  localActivePanel: "workspace" | "agent" | "integrations";
+  setLocalActivePanel: React.Dispatch<React.SetStateAction<"workspace" | "agent" | "integrations">>;
+  selectedTools?: string[];
+  animatedToolIndex?: number | null;
 }
 
 interface FileType {
@@ -362,7 +366,11 @@ export function WorkspacePanel({
   wsRef,
   setBasedFiles,
   setSelectedBasedFileContent,
-  selectedBasedFileName
+  localActivePanel,
+  setLocalActivePanel,
+  selectedBasedFileName,
+  selectedTools,
+  animatedToolIndex
 }: WorkspacePanelProps) {
   const [files, setFiles] = useState<FileItem[]>(inputfiles || []);
   //const [allFiles, setAllFiles] = useState<FileItem[]>(inputfiles || []);
@@ -370,9 +378,7 @@ export function WorkspacePanel({
   const allFiles = inputfiles;
 
   const [isUploading, setIsUploading] = useState(false);
-  const [localActivePanel, setLocalActivePanel] = useState<
-    "workspace" | "agent" | "integrations"
-  >("workspace");
+
   const { toast } = useToast();
 
   // Add these new state variables for the chat functionality
@@ -448,6 +454,15 @@ export function WorkspacePanel({
     }
     setFiles(files.filter((file) => file.id !== id));
   };
+
+  useEffect(() => {
+    if (selectedBasedFileName) {
+      const existingFile = allFiles.find((f) => f.name === selectedBasedFileName);
+      if (existingFile) {
+        handleOpenFile(existingFile);
+      }
+    }
+  }, [selectedBasedFileName, allFiles]);
 
   // Add function to open a file from the explorer
   const handleOpenFile = async (file: FileItem) => {
@@ -1272,7 +1287,7 @@ export function WorkspacePanel({
       {localActivePanel === "integrations" && (
         <div className="flex-1 p-4">
           <div className="text-center text-muted-foreground flex flex-wrap overflow-y-scroll h-[calc(100vh-100px)]">
-            {tools.map((tool) => (
+            {!selectedTools && tools.map((tool) => (
               <Card key={tool.name} className="p-4 flex-1 min-w-[300px] m-2">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between align">
@@ -1287,6 +1302,27 @@ export function WorkspacePanel({
                 </CardContent> */}
               </Card>
             ))}
+            {selectedTools && tools.map((tool, index) => {
+              // During animation, if this card’s index matches animatedToolIndex, add a white border/highlight.
+              const animationClass = animatedToolIndex === index ? "border-2 border-white" : "";
+              // If the tool is in the selectedTools list, add a green background.
+              const selectedClass = selectedTools.includes(tool.name) ? "bg-green-500" : "";
+              return (
+                <Card 
+                  key={tool.name} 
+                  className={`p-4 flex-1 min-w-[300px] m-2 ${animationClass} ${selectedClass}`}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      {iconMap[tool.icon] || <FileText className="h-20 w-20" />}
+                      <div className="text-sm text-right">{tool.name}</div>
+                    </CardTitle>
+                    <CardDescription className="text-left">{tool.shortDescription}</CardDescription>
+                  </CardHeader>
+                  {/* Optionally render docs or additional content */}
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

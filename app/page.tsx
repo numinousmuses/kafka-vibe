@@ -57,6 +57,7 @@ import { useEffect, useRef, useState } from "react";
 import { uploadToS3 } from "@/lib/s3/client";
 import { useToast } from "@/hooks/use-toast";
 import { ChatFileBased, ChatFileBasedVersion } from "@/components/versionDiffExplorer/versionDiffExplorer";
+import { tools } from "@/lib/utils";
 
 interface Message {
   type:
@@ -151,10 +152,14 @@ export default function Home() {
   const [basedFiles, setBasedFiles] = useState<ChatFileBased[]>([]);
   const [selectedBasedFileContent, setSelectedBasedFileContent] = useState<string>("");
   const [selectedBasedFileName, setSelectedBasedFileName] = useState<string>("");
-
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [animatedToolIndex, setAnimatedToolIndex] = useState<number | null>(null);
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
-  
+  const [localActivePanel, setLocalActivePanel] = useState<
+    "workspace" | "agent" | "integrations"
+  >("workspace");
+  const [isFileAnimating, setIsFileAnimating] = useState(false);
 
   useEffect(() => {
     console.log("Workspace files updated:", workspaceFiles);
@@ -284,6 +289,7 @@ export default function Home() {
         // Handle structured responses
         if (data.action === "agent_response") {
           const responseData = data.message;
+          setWorkspacePanelOpen(true);
 
           // Handle file responses
           if (responseData.type === "file") {
@@ -357,7 +363,6 @@ export default function Home() {
                 }
               });
 
-              setSelectedBasedFileName(fileContent.based_filename);
 
               setWorkspaceFiles((prevFiles) => {
                 // Check if the file already exists
@@ -388,6 +393,16 @@ export default function Home() {
                   ];
                 }
               });
+
+              // setLocalActivePanel("workspace");
+              // Delay the state update that triggers opening the new file
+              setTimeout(() => {
+                // Turn off animation flag
+                setIsFileAnimating(false);
+                setLocalActivePanel("workspace");
+                // Now update the selected file name so that your useEffect in WorkspacePanel fires
+                setSelectedBasedFileName(fileContent.based_filename);
+              }, 8000); // Adjust delay as needed
 
               toast({
                 title: "New Based File Generated",
@@ -472,10 +487,38 @@ export default function Home() {
               }
             }
           }
-        } else {
-          // Handle other message types
-          handleServerMessage(data);
-        }
+        } else if (data.action === "selected_tools") {
+          // Open the workspace panel with integrations tab
+          // (Depending on your implementation this could be done by switching the appropriate panel state)
+          // For example, if you store the active panel as localActivePanel, switch it to "integrations"
+          setWorkspacePanelOpen(true);
+          setLocalActivePanel("workspace");
+          setIsFileAnimating(true)
+          // add a 0.5 second delay to allow the panel to open
+          setTimeout(() => {
+            setLocalActivePanel("integrations");
+          }, 500);
+          
+          // Save the selected tools coming from the server
+          setSelectedTools(data.tools); // data.tools is an array of tool names
+        
+          // Start an iteration animation over all integration cards.
+          // Assume tools (from your utils.ts) is available here.
+          let index = 0;
+          const interval = setInterval(() => {
+            setAnimatedToolIndex(index);
+            index++;
+            if (index >= tools.length) {
+              clearInterval(interval);
+              // Reset the animated index so the final style can be applied
+              setAnimatedToolIndex(null);
+            }
+          }, 200); // animate each card for 200ms
+        } 
+        // else {
+        //   // Handle other message types
+        //   handleServerMessage(data);
+        // }
       } catch (err) {
         console.error("Error parsing WebSocket message", err);
 
@@ -1418,7 +1461,7 @@ export default function Home() {
             className="h-[calc(100vh-2.5rem)]"
           >
             <ResizablePanel
-              defaultSize={workspacePanelOpen ? 70 : 100}
+              defaultSize={workspacePanelOpen ? 40 : 100}
               minSize={30}
             >
               <div className="container mx-auto px-4 py-8 h-full overflow-auto relative">
@@ -1453,7 +1496,7 @@ export default function Home() {
             {workspacePanelOpen && (
               <>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30} minSize={20}>
+                <ResizablePanel defaultSize={60} minSize={20}>
                   <WorkspacePanel
                   isOpen={true}
                   onClose={() => setWorkspacePanelOpen(false)}
@@ -1472,6 +1515,10 @@ export default function Home() {
                   setBasedFiles={setBasedFiles}
                   setSelectedBasedFileContent={setSelectedBasedFileContent}
                   selectedBasedFileName={selectedBasedFileName}
+                  localActivePanel={localActivePanel}
+                  setLocalActivePanel={setLocalActivePanel}
+                  selectedTools={selectedTools}
+                  animatedToolIndex={animatedToolIndex}
                   />
                 </ResizablePanel>
               </>
