@@ -153,6 +153,7 @@ export default function Home() {
   const [selectedBasedFileName, setSelectedBasedFileName] = useState<string>("");
 
   const { toast } = useToast();
+  const wsRef = useRef<WebSocket | null>(null);
   
 
   useEffect(() => {
@@ -228,6 +229,7 @@ export default function Home() {
 
     console.log(`Connecting to WebSocket: ${BACKEND_BASE_URL}ws/${chatId}`);
     const ws = new WebSocket(`${BACKEND_BASE_URL}ws/${chatId}`);
+    wsRef.current = ws;
 
     ws.onopen = () => {
       console.log("Connected to WebSocket");
@@ -268,6 +270,16 @@ export default function Home() {
           return; // do nothing else for now
         }
   
+
+        if (data.action === "file_deleted") {
+          const deletedFileId = data.message.deleted_file_id;
+          // Remove the deleted file from the basedFiles list
+          setBasedFiles(prevFiles =>
+            prevFiles.filter(file => file.file_id !== deletedFileId)
+          );
+
+          return;
+        }
 
         // Handle structured responses
         if (data.action === "agent_response") {
@@ -399,6 +411,67 @@ export default function Home() {
             ...prevFiles,
             ...fileData.files,
           ]);
+        } else if (data.action === "revert_complete") {
+          const responseData = data.message;
+          
+          // Process the reverted file update
+          if (responseData.type === "file" && responseData.content) {
+            const fileContent = typeof responseData.content === 'string'
+              ? JSON.parse(responseData.content)
+              : responseData.content;
+  
+            
+            // Update file in basedFiles list
+            if (fileContent.based_filename && fileContent.based_content) {
+              setBasedFiles(prevFiles => {
+                  // Check if the file already exists
+                  const existingFileIndex = prevFiles.findIndex(
+                      file => file.name === fileContent.based_filename
+                  );
+          
+                  const currentTimestamp = new Date().toISOString();
+          
+                  if (existingFileIndex >= 0) {
+                      // Update existing file
+                      const updatedFiles = [...prevFiles];
+                      const updatedFile = {...updatedFiles[existingFileIndex]};
+                      
+                      // Create a new version
+                      const newVersion: ChatFileBasedVersion = {
+                      version_id: `v-${Date.now()}`,
+                      diff: fileContent.based_content,
+                      timestamp: currentTimestamp
+                      };
+                      
+                      // Add to versions array and update latest content
+                      updatedFile.latest_content = fileContent.based_content;
+                      updatedFile.versions = [...updatedFile.versions, newVersion];
+                      
+                      updatedFiles[existingFileIndex] = updatedFile;
+                      
+                      return updatedFiles;
+                  } else {
+                      // Add new file with initial version
+                      return [...prevFiles, {
+                      file_id: `file-${Date.now()}`,
+                      name: fileContent.based_filename,
+                      latest_content: fileContent.based_content,
+                      versions: [{
+                          version_id: `v-${Date.now()}`,
+                          diff: fileContent.based_content,
+                          timestamp: currentTimestamp
+                      }],
+                      type: "based"
+                      } as ChatFileBased];
+                  }
+              })
+              
+              // Update the editor if this is the currently selected file
+              if (selectedBasedFileName === fileContent.based_filename) {
+                setSelectedBasedFileContent(fileContent.based_content);
+              }
+            }
+          }
         } else {
           // Handle other message types
           handleServerMessage(data);
@@ -715,6 +788,10 @@ export default function Home() {
       };  
       
       console.log("Sending message:", messageData);
+
+      toast({
+        description: "Kafka is thinking",
+      });
 
       socket.send(JSON.stringify(messageData));
       setInputValue("");
@@ -1391,6 +1468,10 @@ export default function Home() {
                   setWorkspaceFiles={setWorkspaceFiles}
                   basedFiles={basedFiles}
                   setSelectedBasedFileName={setSelectedBasedFileName}
+                  wsRef={wsRef}
+                  setBasedFiles={setBasedFiles}
+                  setSelectedBasedFileContent={setSelectedBasedFileContent}
+                  selectedBasedFileName={selectedBasedFileName}
                   />
                 </ResizablePanel>
               </>

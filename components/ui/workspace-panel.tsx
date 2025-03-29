@@ -65,6 +65,7 @@ import {
   Code2,
   Network,
   Send,
+  Trash,
   History
 } from "lucide-react";
 import { BACKEND_BASE_URL } from "@/lib/utils";
@@ -336,6 +337,10 @@ interface WorkspacePanelProps {
   setWorkspaceFiles: React.Dispatch<React.SetStateAction<FileItem[]>>;
   basedFiles: ChatFileBased[];
   setSelectedBasedFileName: React.Dispatch<React.SetStateAction<string>>;
+  wsRef?: React.MutableRefObject<WebSocket | null>;
+  setBasedFiles: React.Dispatch<React.SetStateAction<ChatFileBased[]>>;
+  setSelectedBasedFileContent: React.Dispatch<React.SetStateAction<string>>;
+  selectedBasedFileName: string;
 }
 
 interface FileType {
@@ -353,7 +358,11 @@ export function WorkspacePanel({
   setActiveTab,
   setWorkspaceFiles,
   basedFiles,
-  setSelectedBasedFileName
+  setSelectedBasedFileName,
+  wsRef,
+  setBasedFiles,
+  setSelectedBasedFileContent,
+  selectedBasedFileName
 }: WorkspacePanelProps) {
   const [files, setFiles] = useState<FileItem[]>(inputfiles || []);
   //const [allFiles, setAllFiles] = useState<FileItem[]>(inputfiles || []);
@@ -399,7 +408,7 @@ export function WorkspacePanel({
     console.log('FILES', files);
 
     if (!chatId) return;
-    //fetchFilesForChat(chatId);
+    setChatId(chatId);
   }, [chatId, files]);
 
   useEffect(() => {
@@ -410,8 +419,10 @@ export function WorkspacePanel({
     if (updatedFiles.length !== files.length) {
       setFiles(updatedFiles);
       setShowVersionExplorer(false);
+      setActiveTab(null);
+      console.log("files hav ebeen updated")
     }
-  }, []);
+  }, [files, allFiles]);
   
 
   // Add this effect to scroll to bottom when messages change
@@ -801,6 +812,46 @@ export function WorkspacePanel({
         fileInput.click();
       };
   
+  const handleDeleteFile = (fileId: string, event?: React.MouseEvent) => {
+      if (event) {
+      event.stopPropagation(); // Prevent the click from selecting the file
+      }
+  
+      if (!wsRef || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      console.error("WebSocket is not connected.");
+      return;
+      }
+
+
+      // Find the file to be deleted
+      const fileToDelete = basedFiles.find(file => file.file_id === fileId);
+      
+      const messageData = {
+      action: "delete_file",
+      file_id: fileId,
+      };
+      wsRef.current.send(JSON.stringify(messageData));
+      
+      
+      
+      // Update UI state
+      setBasedFiles(prevFiles => prevFiles.filter(file => file.file_id !== fileId));
+      
+      // If the deleted file is currently selected, clear the selection or select another file
+      if (fileToDelete && fileToDelete.name === selectedBasedFileName) {
+      // Find the next file to select
+      const remainingFiles = basedFiles.filter(file => file.file_id !== fileId);
+      if (remainingFiles.length > 0) {
+          // Select the first remaining file
+          setSelectedBasedFileName(remainingFiles[0].name);
+          setSelectedBasedFileContent(remainingFiles[0].latest_content);
+      } else {
+          // No files left, clear the selection
+          setSelectedBasedFileName("");
+          setSelectedBasedFileContent("");
+      }
+      }
+    };
 
   return (
     <div className="h-full flex flex-col">
@@ -873,16 +924,16 @@ export function WorkspacePanel({
                       >
                         <Upload className="h-3.5 w-3.5" />
                       </label> */}
-                      <Button variant="outline" size="icon" onClick={handleUploadWorkspaceFile} className="cursor-pointer w-7 h-7">
+                      {/* <Button variant="outline" size="icon" onClick={handleUploadWorkspaceFile} className="cursor-pointer w-7 h-7">
                         <Upload className="h-3 w-3" />
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                   {allFiles.map((file) => (
                     <div
                       key={file.id}
                       className={cn(
-                        "flex items-center gap-2 text-xs p-1 cursor-pointer hover:bg-muted",
+                        "flex items-center gap-1 text-xs p-1 cursor-pointer hover:bg-muted",
                         activeTab === file.id && "bg-muted"
                       )}
                       onClick={() => handleOpenFile(file)}
@@ -903,6 +954,16 @@ export function WorkspacePanel({
                           <History className="h-3.5 w-3.5" />
                         </Button>
                       )}
+
+                      <Button
+                          onClick={(e) => handleDeleteFile(file.id, e)}
+                          className="text-xs cursor-pointer m-0 p-1"
+                          title="Delete file"
+                          variant="ghost"
+                      >
+                          <Trash  className="h-3.5 w-3.5"/>
+                      </Button>
+                      
                       <Button
                         variant="ghost"
                         size="sm"
@@ -912,6 +973,7 @@ export function WorkspacePanel({
                       >
                         <Download className="h-3.5 w-3.5" />
                       </Button>
+                      
                     </div>
                   ))}
                 </div>
@@ -971,6 +1033,7 @@ export function WorkspacePanel({
                             selectedBasedFileName={selectedBasedFile.name}
                             selectedBasedFileContent={selectedBasedFile.content}
                             // Optionally pass the websocket ref if needed
+                            wsRef={wsRef}
                           />
                         </div>
                       )}
