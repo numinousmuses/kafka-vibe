@@ -52,6 +52,7 @@ import {
   Square,
   User,
   Video,
+  Plus
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { uploadToS3 } from "@/lib/s3/client";
@@ -1009,6 +1010,50 @@ export default function Home() {
     setChatName(currentChat?.name || "");
   };
 
+  const handleCreateNewChat = async () => {
+    if (!authResponse) {
+      console.error("No authentication information available.");
+      return;
+    }
+  
+    try {
+      const formData = new FormData();
+      formData.append("user_id", authResponse.user_id);
+      formData.append("workspace_id", authResponse.workspaces[0]?.id || "default");
+      formData.append("chat_name", "New Agent");
+  
+      const response = await fetch(`${BACKEND_BASE_URL}chat/new`, {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Failed to create chat: ${response.status}`);
+      }
+  
+      const chatData: ChatNewResponse = await response.json();
+      setChatId(chatData.chat_id);
+      setChatName(chatData.name);
+      console.log("Created new chat with ID:", chatData.chat_id);
+  
+      // Update the URL with the new chatId without reloading the page.
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("chatId", chatData.chat_id);
+      window.history.pushState({}, "", newUrl);
+  
+      // Update the chat list from authResponse
+      setChatlist(authResponse.workspaces.flatMap((workspace) => workspace.chats) || []);
+  
+      toast({
+        title: "New Chat Created",
+        description: `Chat "${chatData.name}" created successfully.`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error creating chat:", error);
+    }
+  };
+
   const handleAddNewModel = async (userId: string, newModelName: string, newModelAk: string, newModelBaseUrl: string) => {
     const formData = new FormData();
     formData.append("user_id", userId);
@@ -1249,6 +1294,10 @@ export default function Home() {
                     {chatName}
                   </span>
                 </div>
+
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreateNewChat}>
+                  <Plus className="h-4 w-4"/>
+                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="h-6 w-6">
