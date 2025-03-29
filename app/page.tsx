@@ -74,6 +74,7 @@ interface Message {
   language?: string;
   uid?: string;
   filename?: string;
+  isDiff?: boolean;
 }
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -310,18 +311,7 @@ export default function Home() {
               fileContent = responseData.content;
             }
 
-            // Update chat history
-            setMessages((prev) => [
-              ...prev,
-              {
-                type: "file",
-                role: responseData.role,
-                content:
-                  typeof fileContent === "string"
-                    ? fileContent
-                    : JSON.stringify(fileContent),
-              },
-            ]);
+            
 
             // Process based file content
             if (fileContent.based_filename && fileContent.based_content) {
@@ -345,7 +335,7 @@ export default function Home() {
                     // Create a new version
                     const newVersion: ChatFileBasedVersion = {
                     version_id: `v-${Date.now()}`,
-                    diff: fileContent.based_content,
+                    diff: responseData.diff,
                     timestamp: currentTimestamp
                     };
                     
@@ -417,6 +407,20 @@ export default function Home() {
                 title: "New Based File Generated",
                 description:  `${fileContent.based_filename} has been added to the workspace.`,
               })
+
+              // Update chat history
+              setMessages((prev) => [
+                ...prev,
+                {
+                  type: "file",
+                  role: responseData.role,
+                  diff: responseData.diff ? true : false,
+                  content:
+                    typeof fileContent === "string"
+                      ? fileContent
+                      : JSON.stringify(fileContent),
+                },
+              ]);
 
             }
           } else {
@@ -595,6 +599,8 @@ export default function Home() {
 
   // Handle different types of server messages
   const handleServerMessage = (data: any) => {
+    console.log("Received server message in handleservermessage:", data);
+    
     switch (data.type) {
       // case "status":
       //   setMessages((prev) => [
@@ -790,6 +796,7 @@ export default function Home() {
         };
 
         ws.onmessage = (event) => {
+
           // Reuse the same message handling logic
           try {
             const data = JSON.parse(event.data);
@@ -871,30 +878,12 @@ export default function Home() {
   const renderMessage = (message: Message) => {
     // Check if the message contains steps
     // console.log("MESSAGE", message);
-    const stepsMatch = message.content?.match(/<steps>([\s\S]*?)<\/steps>/);
 
-    /* if the message is of type code, see if there is a message with type result that has the same uid */
-    var resultMessage: Message | null = null;
-    if (message.type === "code") {
-      resultMessage = messages.find(
-        (m) => m.type === "result" && m.uid === message.uid
-      );
+    let isDiffOrFile = false; // true if is the message is a diff
+
+    if (message.isDiff) {
+      isDiffOrFile = true;
     }
-
-    /* if the message has content of type <based></based> don't render it */
-    if (message.content?.includes("<based>")) {
-      return null;
-    }
-
-    if (message.content?.includes('"result"')) {
-      return null;
-    }
-
-    if (message.type === "result") {
-      return null;
-    }
-
-    message.content?.replace("<think>research_complete: true</think>", "");
 
     return (
       <div
@@ -917,93 +906,12 @@ export default function Home() {
           <div className="font-medium">
             {message.role === "assistant" ? "Assistant" : "You"}
           </div>
-          {message.type === "code" ? (
-            <CodeShower
-              code={message.content}
-              language={message.language}
-              results={resultMessage?.content}
-              filename="index.ts"
-            />
-          ) : message.type === "error" ? (
-            <div className="text-sm leading-relaxed whitespace-pre-wrap text-red-500">
-              {message.content}
-            </div>
-          ) : stepsMatch ? (
-            <div className="text-sm leading-relaxed">
-              {message.content.split(stepsMatch[0])[0]}
-              <div className="my-4 space-y-2 border rounded-md p-4 bg-muted/20">
-                {parseSteps(message.content)?.map(
-                  (step: any, index: any, array: any) => {
-                    const isLast = index === array.length - 1;
-                    const isLastAtLevel = array
-                      .slice(index + 1)
-                      .every((s: any) => s.indentLevel !== step.indentLevel);
 
-                    // Create tree-like structure with connecting lines
-                    const getTreeLine = () => {
-                      if (step.indentLevel === 0) return null;
-
-                      if (isLastAtLevel) {
-                        return (
-                          <span className="text-muted-foreground/40 mr-1">
-                            └─
-                          </span>
-                        );
-                      } else {
-                        return (
-                          <span className="text-muted-foreground/40 mr-1">
-                            ├─
-                          </span>
-                        );
-                      }
-                    };
-
-                    // Add vertical connecting lines for parent items
-                    const getVerticalLines = () => {
-                      if (step.indentLevel === 0) return null;
-
-                      const lines = [];
-                      for (let i = 0; i < step.indentLevel - 1; i++) {
-                        // Check if we need a vertical line at this position
-                        const needsLine = array
-                          .slice(index + 1)
-                          .some((s: any) => s.indentLevel > i);
-
-                        lines.push(
-                          <span
-                            key={i}
-                            className="inline-block w-6 text-center"
-                          >
-                            {needsLine ? (
-                              <span className="text-muted-foreground/40">
-                                │
-                              </span>
-                            ) : (
-                              <span>&nbsp;</span>
-                            )}
-                          </span>
-                        );
-                      }
-                      return <>{lines}</>;
-                    };
-
-                    return (
-                      <div key={index} className="flex items-start">
-                        <div className="flex items-center">
-                          {getVerticalLines()}
-                          {getTreeLine()}
-                          <Checkbox className="border-gray-300/50 text-primary/70 focus:ring-primary/50" />
-                        </div>
-                        <span className="ml-2 text-muted-foreground/90">
-                          {step.text}
-                        </span>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-              {message.content.split(stepsMatch[0])[1] || ""}
-            </div>
+          
+          
+          {message.type === "file" ? (
+            
+            <div>{isDiffOrFile ? "Made changes to .based file." : "Created new .based file."}</div>
           ) : (
             <div className="text-sm leading-relaxed whitespace-pre-wrap">
               {message.content}
