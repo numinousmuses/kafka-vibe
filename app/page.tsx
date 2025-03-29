@@ -502,6 +502,12 @@ export default function Home() {
               }
             }
           }
+
+          toast({
+            // title: "Revert Complete",
+            description: "File Reverted.",
+            
+          })
         } else if (data.action === "selected_tools") {
           // Open the workspace panel with integrations tab
           // (Depending on your implementation this could be done by switching the appropriate panel state)
