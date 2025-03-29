@@ -464,6 +464,18 @@ export function WorkspacePanel({
     }
   }, [selectedBasedFileName, allFiles]);
 
+  const toolRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!animatedToolIndex) {
+      return;
+    }
+    if (animatedToolIndex !== null) {
+      const el = toolRefs.current[animatedToolIndex];
+      el?.scrollIntoView({ behavior: "smooth", inline: "center" });
+    }
+  }, [animatedToolIndex]);
+
   // Add function to open a file from the explorer
   const handleOpenFile = async (file: FileItem) => {
 
@@ -1306,10 +1318,11 @@ export function WorkspacePanel({
               // During animation, if this card’s index matches animatedToolIndex, add a white border/highlight.
               const animationClass = animatedToolIndex === index ? "border-2 border-white" : "";
               // If the tool is in the selectedTools list, add a green background.
-              const selectedClass = selectedTools.includes(tool.name) ? "bg-green-500" : "";
+              const selectedClass = selectedTools.includes(tool.name) ? "bg-green-500 text-white" : "";
               return (
                 <Card 
                   key={tool.name} 
+                  ref={(el) => (toolRefs.current[index] = el)}
                   className={`p-4 flex-1 min-w-[300px] m-2 ${animationClass} ${selectedClass}`}
                 >
                   <CardHeader>
@@ -1317,7 +1330,7 @@ export function WorkspacePanel({
                       {iconMap[tool.icon] || <FileText className="h-20 w-20" />}
                       <div className="text-sm text-right">{tool.name}</div>
                     </CardTitle>
-                    <CardDescription className="text-left">{tool.shortDescription}</CardDescription>
+                    <CardDescription className={selectedTools.includes(tool.name) ? "text-white text-left" : "text-left"}>{tool.shortDescription}</CardDescription>
                   </CardHeader>
                   {/* Optionally render docs or additional content */}
                 </Card>

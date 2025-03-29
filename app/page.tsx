@@ -402,7 +402,7 @@ export default function Home() {
                 setLocalActivePanel("workspace");
                 // Now update the selected file name so that your useEffect in WorkspacePanel fires
                 setSelectedBasedFileName(fileContent.based_filename);
-              }, 8000); // Adjust delay as needed
+              }, 3200); // Adjust delay as needed
 
               toast({
                 title: "New Based File Generated",
@@ -513,7 +513,7 @@ export default function Home() {
               // Reset the animated index so the final style can be applied
               setAnimatedToolIndex(null);
             }
-          }, 200); // animate each card for 200ms
+          }, 80); // animate each card for 200ms
         } 
         // else {
         //   // Handle other message types
