@@ -814,7 +814,7 @@ export function WorkspacePanel({
             }
             
             try {
-              const res = await fetch(`${BACKEND_BASE_URL}file/upload`, {
+              const res = await fetch(`${BACKEND_BASE_URL}/file/upload`, {
                 method: "POST",
                 body: formData,
               });

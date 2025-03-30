@@ -23,7 +23,7 @@ export default function SignupPage({ setLoginOrSignup }: SignupPageProps) {
     setIsLoading(true);
     setErrors("");
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}auth/signup`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, username, password }),

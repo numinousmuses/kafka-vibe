@@ -180,7 +180,7 @@ export default function Home() {
                 formData.append("workspace_id", authResponse.workspaces[0]?.id || "default");
                 formData.append("chat_name", "New Agent");
   
-                const response = await fetch(`${BACKEND_BASE_URL}chat/new`, {
+                const response = await fetch(`${BACKEND_BASE_URL}/chat/new`, {
                   method: "POST",
                   body: formData,
                 });
@@ -232,7 +232,7 @@ export default function Home() {
   // Handler to add the API key
   const handleAddApiKey = async () => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}auth/ak/add`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/auth/ak/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -265,7 +265,7 @@ export default function Home() {
   // Handler to remove the API key
   const handleRemoveApiKey = async () => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}auth/ak/remove`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/auth/ak/remove`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -297,8 +297,8 @@ export default function Home() {
   useEffect(() => {
     if (!chatId) return;
 
-    console.log(`Connecting to WebSocket: ${BACKEND_BASE_URL}ws/${chatId}`);
-    const ws = new WebSocket(`${BACKEND_BASE_URL}ws/${chatId}`);
+    console.log(`Connecting to WebSocket: ${BACKEND_BASE_URL}/ws/${chatId}`);
+    const ws = new WebSocket(`${BACKEND_BASE_URL}/ws/${chatId}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -635,7 +635,7 @@ export default function Home() {
     if (storedAuth) {
       try {
         const authObj = JSON.parse(storedAuth);
-        const res = await fetch(`${BACKEND_BASE_URL}auth/hydrate`, {
+        const res = await fetch(`${BACKEND_BASE_URL}/auth/hydrate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -678,7 +678,7 @@ export default function Home() {
         resolve();
       } else {
         // Reconnect if needed
-        const ws = new WebSocket(`${BACKEND_BASE_URL}ws/${chatId}`);
+        const ws = new WebSocket(`${BACKEND_BASE_URL}/ws/${chatId}`);
 
         ws.onopen = () => {
           setSocket(ws);
@@ -809,7 +809,7 @@ export default function Home() {
     event.preventDefault();
 
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}auth/login`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -881,7 +881,7 @@ export default function Home() {
       formData.append("workspace_id", authResponse.workspaces[0]?.id || "default");
       formData.append("chat_name", "New Agent");
   
-      const response = await fetch(`${BACKEND_BASE_URL}chat/new`, {
+      const response = await fetch(`${BACKEND_BASE_URL}/chat/new`, {
         method: "POST",
         body: formData,
       });
@@ -923,7 +923,7 @@ export default function Home() {
     formData.append("base_url", newModelBaseUrl);
   
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}models/new`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/models/new`, {
         method: "POST",
         body: formData,
       });
@@ -949,7 +949,7 @@ export default function Home() {
 
   const handleDeleteModel = async (modelId: string) => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}models/delete/${modelId}`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/models/delete/${modelId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -976,7 +976,7 @@ export default function Home() {
     formData.append("new_name", newName);
 
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}chat/rename`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/chat/rename`, {
         method: "PATCH",
         body: formData,
       });
@@ -1003,7 +1003,7 @@ export default function Home() {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}chat/${chatId}?user_ak=${encodeURIComponent(user_ak || "")}&worker_id=${encodeURIComponent(workerId || "")}`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/chat/${chatId}?user_ak=${encodeURIComponent(user_ak || "")}&worker_id=${encodeURIComponent(workerId || "")}`, {
         method: "DELETE",
       });
       if (!res.ok) {

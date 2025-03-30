@@ -22,7 +22,7 @@ export default function LoginPage({ setLoginOrSignup }: LoginPageProps) {
     setIsLoading(true);
     setErrors("");
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}auth/login`, {
+      const res = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
