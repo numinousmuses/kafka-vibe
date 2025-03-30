@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { BACKEND_BASE_URL } from "@/lib/utils";
+import { Button } from "../ui/button";
 
-export default function LoginPage() {
+interface LoginPageProps {
+    setLoginOrSignup: (loginOrSignup: boolean) => void;
+}
+
+export default function LoginPage({ setLoginOrSignup }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState("");
@@ -41,6 +46,9 @@ export default function LoginPage() {
     <div className="flex items-center justify-center h-screen">
       <form onSubmit={handleLogin} className="space-y-4 p-4 border w-[300px]">
         <h2 className="text-lg font-semibold">Login</h2>
+        <Button onClick={() => setLoginOrSignup(false)}>
+            Switch to Sign Up
+        </Button>
         {errors && <p className="text-red-500 text-sm">{errors}</p>}
         <div>
           <label className="block mb-1 text-sm">Email</label>

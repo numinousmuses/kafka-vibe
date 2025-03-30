@@ -589,6 +589,7 @@ export default function Home() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({ }),
+            credentials: "include",
           });
 
           if (!res.ok) {
