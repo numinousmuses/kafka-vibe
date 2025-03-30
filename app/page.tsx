@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Trash, Edit3 } from "lucide-react";
+import { ChevronDown, Trash, Edit3, KeyRound } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -583,7 +583,7 @@ export default function Home() {
           const authObj = JSON.parse(authResponse);
           console.log("Rehydrating auth response:", authObj);
           const parsedEmail = authObj.email;
-          const res = await fetch(`${BACKEND_BASE_URL}auth/login`, {
+          const res = await fetch(`${BACKEND_BASE_URL}auth/hydrate`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -602,12 +602,16 @@ export default function Home() {
           console.error(error);
           // Clear invalid auth data
           localStorage.removeItem("authResponse");
+          window.location.href = "/login";
         }
+      } else {
+        window.location.href = "/login";
       }
     };
 
     rehydrateAuth();
   }, []);
+  
 
   // Handle different types of server messages
   const handleServerMessage = (data: any) => {
@@ -1300,14 +1304,20 @@ export default function Home() {
                 </Button>
               </div>
               <div className="flex items-center gap-2">
+                
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <Search className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <Square className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <History className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  // onClick={() => setSettingsPanelOpen(!settingsPanelOpen)}
+                >
+                  <KeyRound className="h-4 w-4" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -1428,6 +1438,8 @@ export default function Home() {
                 >
                   <PanelRightOpen className="h-4 w-4" />
                 </Button>
+
+                
               </div>
             </div>
           </nav>
