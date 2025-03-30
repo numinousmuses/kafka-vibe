@@ -668,86 +668,6 @@ export function WorkspacePanel({
     e.stopPropagation();
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const droppedFiles = Array.from(e.dataTransfer.files);
-    if (droppedFiles.length === 0) return;
-
-    // Process each dropped file
-    for (const file of droppedFiles) {
-      // Check if file type is supported
-      const fileType = getFileType(file.name);
-      if (!["pdf", "csv", "markdown", "code", "image"].includes(fileType)) {
-        toast({
-          title: "Unsupported file type",
-          description:
-            "Only images, PDF, CSV, Markdown, and code files are supported.",
-          variant: "destructive",
-        });
-        continue;
-      }
-
-      try {
-        setIsUploading(true);
-
-        // Upload file to S3
-        const result = await uploadToS3({
-          file,
-          directory: "",
-          endpoint: "/api/s3/sign",
-          onProgress: (progress) => {
-            console.log(`Upload progress: ${progress}%`);
-          },
-        });
-
-        // Read file content (for non-image files)
-        let fileContent = "";
-        if (fileType !== "image") {
-          fileContent = await readFileContent(file);
-        }
-
-        // Create new file item
-        const newFile: FileItem = {
-          id: result.key,
-          name: file.name,
-          content: fileContent,
-          language: fileType === "code" ? file.name.split(".").pop() || "" : "",
-          type: fileType,
-          url: result.url,
-        };
-
-        console.log("New file:", newFile);
-
-        // Add file to workspace
-        setAllFiles((prev) => [...prev, newFile]);
-        setFiles((prev) => [...prev, newFile]);
-        setActiveTab(newFile.id);
-
-        // Call the onFileUpload prop if provided
-        if (onFileUpload) {
-          onFileUpload(newFile);
-        }
-
-        toast({
-          title: "File uploaded",
-          description: `${file.name} has been uploaded successfully.`,
-        });
-      } catch (error) {
-        console.error("File upload failed:", error);
-        toast({
-          title: "Upload failed",
-          description: "There was an error uploading your file.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsUploading(false);
-      }
-    }
-  };
-
   // Helper function to read file content
   const readFileContent = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -1100,7 +1020,7 @@ export function WorkspacePanel({
                 className="w-full flex flex-col h-8"
               >
                 <div className="border-b h-8">
-                  <ScrollArea orientation="horizontal" className="w-full">
+                  <ScrollArea className="w-full">
                     <TabsList className="bg-transparent h-8 w-full justify-start">
                       {files.map((file) => (
                         <TabsTrigger
@@ -1344,14 +1264,14 @@ export function WorkspacePanel({
                   </Button>
                 </div>
 
-                <input
+                {/* <input
                   type="file"
                   id="chat-file-upload"
                   className="sr-only"
                   accept=".pdf,.csv,.md,.js,.jsx,.ts,.tsx,.css,.html,.json,.py,.java,.c,.cpp,.jpg,.jpeg,.png,.gif,.webp,.svg"
                   onDrop={handleDrop}
                   disabled={isUploading}
-                />
+                /> */}
               </div>
 
               <div className="text-center text-xs text-gray-500 mt-2">
