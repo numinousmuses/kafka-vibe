@@ -1254,36 +1254,13 @@ export function WorkspacePanel({
               onSubmit={handleSendMessage}
               className="relative max-w-3xl mx-auto"
             >
-              {/* Display uploaded files above textarea */}
-              <div className="mb-2 flex flex-wrap gap-2">
-                    <div
-                      className="bg-muted rounded-md px-2 py-1 text-xs flex items-center gap-1"
-                    >
-                      {activeTab ? (
-                        files.find((f) => f.id === activeTab)?.flow_id ? (
-                          <div className="text-sm font-medium">
-                            {/* Chatting with agent:{" "} */}
-                            {files.find((f) => f.id === activeTab)?.name}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">
-                            The selected file does not support agent chat.
-                          </div>
-                        )
-                      ) : (
-                        <div className="text-sm text-muted-foreground">
-                          No file selected for agent chat.
-                        </div>
-                      )}
-                    </div>
-              </div>
 
               <div
                 className="relative"
-                onDragEnter={handleDragEnter}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
+                // onDragEnter={handleDragEnter}
+                // onDragOver={handleDragOver}
+                // onDragLeave={handleDragLeave}
+                // onDrop={handleDrop}
               >
                 {isDragging && (
                   <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center">
