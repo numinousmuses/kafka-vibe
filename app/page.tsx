@@ -108,7 +108,7 @@ interface ChatType {
 }
 
 const defaultModel = {
-  name: process.env.NEXT_PdUBLIC_DEFAULT_MODEL_NAME || "anthropic/claude-3.7-sonnet:beta",
+  name: process.env.NEXT_PUBLIC_DEFAULT_MODEL_NAME || "anthropic/claude-3.7-sonnet:beta",
   ak: process.env.NEXT_PUBLIC_DEFAULT_MODEL_KEY,
   base_url: process.env.NEXT_PUBLIC_DEFAULT_BASEURL
 }
@@ -630,46 +630,42 @@ export default function Home() {
     };
   }, [chatId]);
 
-  // Add this useEffect for authentication rehydration
-  useEffect(() => {
-    const rehydrateAuth = async () => {
-      const authResponse = localStorage.getItem("authResponse");
+  const rehydrateAuth = async () => {
+    const storedAuth = localStorage.getItem("authResponse");
+    if (storedAuth) {
+      try {
+        const authObj = JSON.parse(storedAuth);
+        const res = await fetch(`${BACKEND_BASE_URL}auth/hydrate`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${authObj.access_token}`,
+          },
+          credentials: "include",
+        });
 
-      if (authResponse) {
-        try {
-          const authObj = JSON.parse(authResponse);
-          console.log("Rehydrating auth response:", authObj);
-          const res = await fetch(`${BACKEND_BASE_URL}auth/hydrate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${authObj.access_token}`,
-            },
-            body: JSON.stringify({}),
-            credentials: "include",
-          });
-
-          if (!res.ok) {
-            throw new Error(`Login request failed: ${res.status}`);
-          }
-
-          const data = await res.json();
-          console.log("Login response:", data);
-          setAuthResponse(data);
-          setUserAk(data.brainbase_api_key)
-        } catch (error) {
-          console.error(error);
-          // Clear invalid auth data
-          localStorage.removeItem("authResponse");
-          window.location.href = "/login";
+        if (!res.ok) {
+          throw new Error(`Login request failed: ${res.status}`);
         }
-      } else {
+
+        const data = await res.json();
+        console.log("Rehydrated auth response:", data);
+        setAuthResponse(data);
+        setUserAk(data.brainbase_api_key);
+      } catch (error) {
+        console.error(error);
+        localStorage.removeItem("authResponse");
         window.location.href = "/login";
       }
-    };
+    } else {
+      window.location.href = "/login";
+    }
+  };
 
+  // Add this useEffect for authentication rehydration
+  useEffect(() => {
     rehydrateAuth();
-  }, []);
+  }, [rehydrateAuth]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -903,6 +899,8 @@ export default function Home() {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set("chatId", chatData.chat_id);
       window.history.pushState({}, "", newUrl);
+
+      await rehydrateAuth()
   
       // Update the chat list from authResponse
       setChatlist(authResponse.workspaces.flatMap((workspace) => workspace.chats) || []);

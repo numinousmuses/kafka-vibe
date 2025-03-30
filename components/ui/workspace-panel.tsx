@@ -408,6 +408,10 @@ export function WorkspacePanel({
   const [showVersionExplorer, setShowVersionExplorer] = useState(false);
   const [selectedBasedFile, setSelectedBasedFile] = useState<FileItem | null>(null);
 
+  useEffect(() => {
+    setFiles(inputfiles);
+  }, [inputfiles]);
+
   const openVersionExplorer = (file: FileItem) => {
     setSelectedBasedFile(file);
     setSelectedBasedFileName(file.name);
