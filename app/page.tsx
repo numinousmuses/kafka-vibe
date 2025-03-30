@@ -665,7 +665,7 @@ export default function Home() {
   // Add this useEffect for authentication rehydration
   useEffect(() => {
     rehydrateAuth();
-  }, [rehydrateAuth]);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

@@ -71,3 +71,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* hide all scrollbars */
+::-webkit-scrollbar {
+  display: none;
+}
