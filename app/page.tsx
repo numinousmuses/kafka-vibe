@@ -91,6 +91,7 @@ interface AuthResponse {
   access_token: string;
   token_type?: string;
   brainbase_api_key?: string;
+  team_id?: string;
 }
 
 // Add this interface for the chat response
@@ -169,6 +170,7 @@ export default function Home() {
   const [isFileAnimating, setIsFileAnimating] = useState(false);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [workerId, setWorkerId] = useState("");
 
   useEffect(() => {
     console.log("Workspace files updated:", workspaceFiles);
@@ -355,6 +357,7 @@ export default function Home() {
           setWorkspaceFiles(data.chat_files || []);
           setBasedFiles(data.chat_files_based || []);
           setSelectedBasedFileName(data.chat_files_based[0]?.name || "");
+          setWorkerId(data.worker_id);
           return; // do nothing else for now
         }
   
