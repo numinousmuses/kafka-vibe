@@ -364,7 +364,7 @@ export default function Home() {
             console.log("Received file response:", responseData);
 
             // Use a check like this:
-            let fileContent;
+            let fileContent: any = null;
             if (typeof responseData.content === "string") {
               if (responseData.content.trim().startsWith("{")) {
                 fileContent = JSON.parse(responseData.content);
