@@ -441,6 +441,7 @@ export default function Home() {
                         diff: fileContent.based_content,
                         timestamp: currentTimestamp
                     }],
+                    flow_id: data.flow_id,
                     type: "based"
                     } as ChatFileBased];
                 }
