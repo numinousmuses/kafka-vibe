@@ -346,6 +346,8 @@ interface WorkspacePanelProps {
   setLocalActivePanel: React.Dispatch<React.SetStateAction<"workspace" | "agent" | "integrations">>;
   selectedTools?: string[];
   animatedToolIndex?: number | null;
+  workerId?: string;
+  user_ak?: string
 }
 
 interface FileType {
@@ -371,7 +373,9 @@ export function WorkspacePanel({
   setLocalActivePanel,
   selectedBasedFileName,
   selectedTools,
-  animatedToolIndex
+  animatedToolIndex,
+  workerId,
+  user_ak
 }: WorkspacePanelProps) {
   const [files, setFiles] = useState<FileItem[]>(inputfiles || []);
   //const [allFiles, setAllFiles] = useState<FileItem[]>(inputfiles || []);
@@ -838,8 +842,10 @@ export function WorkspacePanel({
       const fileToDelete = basedFiles.find(file => file.file_id === fileId);
       
       const messageData = {
-      action: "delete_file",
-      file_id: fileId,
+        action: "delete_file",
+        file_id: fileId,
+        worker_id: workerId,
+        user_ak: user_ak
       };
       wsRef.current.send(JSON.stringify(messageData));
       

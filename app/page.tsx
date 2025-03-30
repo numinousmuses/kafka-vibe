@@ -169,8 +169,9 @@ export default function Home() {
   >("workspace");
   const [isFileAnimating, setIsFileAnimating] = useState(false);
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
-  const [apiKey, setApiKey] = useState("");
+  const [apiKey, setApiKey] = useState(""); // for adding api key in form
   const [workerId, setWorkerId] = useState("");
+  const [user_ak, setUserAk] = useState(""); // for ak use
 
   useEffect(() => {
     console.log("Workspace files updated:", workspaceFiles);
@@ -269,6 +270,7 @@ export default function Home() {
         title: "API Key Added",
         description: data.detail,
       });
+      setUserAk(apiKey);
       setApiKey("");
       setShowApiKeyDialog(false);
     } catch (error) {
@@ -680,6 +682,7 @@ export default function Home() {
           const data = await res.json();
           console.log("Login response:", data);
           setAuthResponse(data);
+          setUserAk(data.brainbase_api_key)
         } catch (error) {
           console.error(error);
           // Clear invalid auth data
@@ -942,7 +945,7 @@ export default function Home() {
         is_first_prompt: workspaceFiles.length === 0 || messages.length === 0,
         selected_filename: selectedBasedFileName || "",
         chat_files_based: basedFiles,
-        user_ak: authResponse?.brainbase_api_key,
+        user_ak: user_ak,
         worker_id: workerId,
       };  
       
@@ -1219,7 +1222,7 @@ export default function Home() {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}chat/${chatId}`, {
+      const res = await fetch(`${BACKEND_BASE_URL}chat/${chatId}?user_ak=${encodeURIComponent(user_ak)}&worker_id=${encodeURIComponent(workerId)}`, {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -1586,6 +1589,8 @@ export default function Home() {
                   setLocalActivePanel={setLocalActivePanel}
                   selectedTools={selectedTools}
                   animatedToolIndex={animatedToolIndex}
+                  user_ak={user_ak}
+                  workerId={workerId}
                   />
                 </ResizablePanel>
               </>
