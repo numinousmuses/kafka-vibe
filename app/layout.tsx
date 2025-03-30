@@ -6,8 +6,8 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Render.com Overview',
-  description: 'Cloud Platform Overview',
+  title: 'Kafka - Brainbase',
+  description: 'Vibe Code AI Agents',
 };
 
 export default function RootLayout({

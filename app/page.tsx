@@ -52,7 +52,8 @@ import {
   Square,
   User,
   Video,
-  Plus
+  Plus,
+  LogOut
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { uploadToS3 } from "@/lib/s3/client";
@@ -86,6 +87,10 @@ interface AuthResponse {
   user_id: string;
   workspaces: any[];
   models: any[];
+  username: string;
+  access_token: string;
+  token_type?: string;
+  brainbase_api_key?: string;
 }
 
 // Add this interface for the chat response
@@ -162,6 +167,8 @@ export default function Home() {
     "workspace" | "agent" | "integrations"
   >("workspace");
   const [isFileAnimating, setIsFileAnimating] = useState(false);
+  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+  const [apiKey, setApiKey] = useState("");
 
   useEffect(() => {
     console.log("Workspace files updated:", workspaceFiles);
@@ -232,6 +239,76 @@ export default function Home() {
 
     initChat();
   }, [authResponse]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("authResponse");
+    // Optionally, clear other related data or state
+    // Redirect to the login page
+    window.location.href = "/login";
+  };
+
+  // Handler to add the API key
+  const handleAddApiKey = async () => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}auth/ak/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+           "Authorization": `Bearer ${authResponse!.access_token}`
+        },
+        body: JSON.stringify({ api_key: apiKey }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to add API key: ${res.status}`);
+      }
+      const data = await res.json();
+      toast({
+        title: "API Key Added",
+        description: data.detail,
+      });
+      setApiKey("");
+      setShowApiKeyDialog(false);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Could not add API key.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handler to remove the API key
+  const handleRemoveApiKey = async () => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}auth/ak/remove`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authResponse!.access_token}`
+        }
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to remove API key: ${res.status}`);
+      }
+      const data = await res.json();
+      toast({
+        title: "API Key Removed",
+        description: data.detail,
+      });
+      setApiKey("");
+      setShowApiKeyDialog(false);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Could not remove API key.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Connect to WebSocket using chatId instead of sessionId
   useEffect(() => {
@@ -582,13 +659,13 @@ export default function Home() {
         try {
           const authObj = JSON.parse(authResponse);
           console.log("Rehydrating auth response:", authObj);
-          const parsedEmail = authObj.email;
           const res = await fetch(`${BACKEND_BASE_URL}auth/hydrate`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "Authorization": `Bearer ${authObj.access_token}`,
             },
-            body: JSON.stringify({ }),
+            body: JSON.stringify({}),
             credentials: "include",
           });
 
@@ -939,17 +1016,6 @@ export default function Home() {
     );
   };
 
-  const uploadFile = (file: FileItem) => {
-    // Add the file to the workspace files
-    setWorkspaceFiles((prev) => [...prev, file]);
-
-    // Update the files in Supabase if we have a session
-    if (chatId) {
-      const updatedFiles = [...workspaceFiles, file];
-      updateWorkspaceFiles(chatId, updatedFiles);
-    }
-  };
-
   // Add login handler
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1172,35 +1238,7 @@ export default function Home() {
     <main className="min-h-screen bg-background text-foreground text-sm flex flex-col h-screen overflow-hidden">
       {!authResponse ? (
         <div className="dark min-h-screen flex items-center justify-center bg-gradient-to-b from-neutral-900 via-neutral-950 to-black text-neutral-100">
-          <Card className="w-full max-w-md mx-auto bg-neutral-950 rounded-none">
-            <CardHeader>
-              <CardTitle className="text-xl">Sign in</CardTitle>
-              <CardDescription>Enter your email to continue</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="someone@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full mt-4 bg-blue-200">
-                  Sign in
-                </Button>
-              </form>
-            </CardContent>
-            <CardFooter>
-              <p className="text-sm text-neutral-500">
-                Enter your email address to register or log in.
-              </p>
-            </CardFooter>
-          </Card>
+          
         </div>
       ) : (
         <>
@@ -1309,16 +1347,46 @@ export default function Home() {
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <Search className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Square className="h-4 w-4" />
-                </Button>
+                
+
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  // onClick={() => setSettingsPanelOpen(!settingsPanelOpen)}
+                  onClick={() => setShowApiKeyDialog(true)}
                 >
                   <KeyRound className="h-4 w-4" />
+                </Button>
+                <Dialog open={showApiKeyDialog} onOpenChange={setShowApiKeyDialog}>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Manage API Key</DialogTitle>
+                      <DialogDescription>
+                        Set your API key or remove the existing one.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <Input
+                        placeholder="Enter API key"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowApiKeyDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddApiKey}>
+                        Save API Key
+                      </Button>
+                      <Button variant="destructive" onClick={handleRemoveApiKey}>
+                        Remove API Key
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4"/>
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

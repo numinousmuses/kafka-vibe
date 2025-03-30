@@ -26,6 +26,7 @@ export default function LoginPage({ setLoginOrSignup }: LoginPageProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include",
       });
       if (!res.ok) {
         const data = await res.json();
@@ -33,6 +34,7 @@ export default function LoginPage({ setLoginOrSignup }: LoginPageProps) {
       }
       const data = await res.json();
       localStorage.setItem("authResponse", JSON.stringify(data));
+    //   console.log(res)
       window.location.href = "/";
     } catch (error: any) {
       setErrors(error.message);
