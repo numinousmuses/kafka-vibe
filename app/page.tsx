@@ -480,6 +480,7 @@ export default function Home() {
                     type: "file",
                     role: responseData.role,
                     diff: responseData.diff ? true : false,
+                    isDiff: responseData.diff ? true : false,
                     content:
                       typeof fileContent === "string"
                         ? fileContent
