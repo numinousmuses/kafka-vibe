@@ -941,6 +941,8 @@ export default function Home() {
         is_first_prompt: workspaceFiles.length === 0 || messages.length === 0,
         selected_filename: selectedBasedFileName || "",
         chat_files_based: basedFiles,
+        user_ak: authResponse?.brainbase_api_key,
+        worker_id: workerId,
       };  
       
       console.log("Sending message:", messageData);

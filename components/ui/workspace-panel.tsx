@@ -85,6 +85,7 @@ import { ChatFileBased } from "../versionDiffExplorer/versionDiffExplorer";
     type: "code" | "pdf" | "csv" | "markdown" | "other" | "computer" | "image" | "based";
     url: string;
     versions?: FileVersion[];
+    flow_id?: string;
   }
 
   export interface FileVersion {
