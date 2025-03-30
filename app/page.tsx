@@ -107,29 +107,8 @@ interface ChatType {
   last_updated: string;
 }
 
-// Add a new function to parse steps from content
-const parseSteps = (content: string) => {
-  console.log("PARSING STEPS", content);
-  const stepsRegex = /<steps>([\s\S]*?)<\/steps>/g;
-  const matches = [...content.matchAll(stepsRegex)];
-
-  if (matches.length === 0) return null;
-
-  const stepsContent = matches[0][1];
-  const steps = stepsContent
-    .split("\n")
-    .filter((line) => line.trim().startsWith("- [ ]"))
-    .map((line) => {
-      const indentLevel = line.indexOf("- [ ]") / 4;
-      const text = line.replace("- [ ]", "").trim();
-      return { text, indentLevel };
-    });
-
-  return steps;
-};
-
 const defaultModel = {
-  name: process.env.NEXT_PUBLIC_DEFAULT_MODEL_NAME || "anthropic/claude-3.7-sonnet:beta",
+  name: process.env.NEXT_PdUBLIC_DEFAULT_MODEL_NAME || "anthropic/claude-3.7-sonnet:beta",
   ak: process.env.NEXT_PUBLIC_DEFAULT_MODEL_KEY,
   base_url: process.env.NEXT_PUBLIC_DEFAULT_BASEURL
 }
@@ -512,9 +491,6 @@ export default function Home() {
               
 
             }
-          } else {
-            // Handle other response types (text, etc.)
-            handleServerMessage(data);
           }
         } else if (data.action === "file_uploaded") {
           // Parse file upload response
@@ -623,10 +599,7 @@ export default function Home() {
             }
           }, 80); // animate each card for 200ms
         } 
-        // else {
-        //   // Handle other message types
-        //   handleServerMessage(data);
-        // }
+
       } catch (err) {
         console.error("Error parsing WebSocket message", err);
 
@@ -696,186 +669,6 @@ export default function Home() {
 
     rehydrateAuth();
   }, []);
-  
-
-  // Handle different types of server messages
-  const handleServerMessage = (data: any) => {
-    console.log("Received server message in handleservermessage:", data);
-    
-    switch (data.type) {
-      // case "status":
-      //   setMessages((prev) => [
-      //     ...prev,
-      //     {
-      //       type: "status",
-      //       role: "assistant",
-      //       content: data.message,
-      //     },
-      //   ]);
-      //   break;
-
-      case "executing_code":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "code",
-            uid: data.uid,
-            filename: data.filename,
-            role: "assistant",
-            content: data.code,
-            language: "typescript",
-          },
-        ]);
-        break;
-
-      case "code_result":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "result",
-            uid: data.uid,
-            filename: data.filename,
-            role: "assistant",
-            content: JSON.stringify(data.result, null, 2),
-          },
-        ]);
-        break;
-
-      case "ai_response":
-        // Check if the response contains steps
-        const steps = parseSteps(data.content);
-
-        // Check if the response contains code blocks
-        const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-        let lastIndex = 0;
-        let match;
-        const newMessages: Message[] = [];
-
-        // If we have steps, add them as a special message type
-        if (steps) {
-          // Add the content before the steps
-          const stepsStart = data.content.indexOf("<steps>");
-          if (stepsStart > 0) {
-            const textBefore = data.content.slice(0, stepsStart).trim();
-            if (textBefore) {
-              newMessages.push({
-                type: "text",
-                role: "assistant",
-                content: textBefore,
-              });
-            }
-          }
-
-          // Add the steps as a special message
-          newMessages.push({
-            type: "text",
-            role: "assistant",
-            content: data.content.match(/<steps>([\s\S]*?)<\/steps>/)[0],
-          });
-
-          // Add the content after the steps
-          const stepsEnd = data.content.indexOf("</steps>") + "</steps>".length;
-          if (stepsEnd < data.content.length) {
-            const textAfter = data.content.slice(stepsEnd).trim();
-            if (textAfter) {
-              newMessages.push({
-                type: "text",
-                role: "assistant",
-                content: textAfter,
-              });
-            }
-          }
-        } else {
-          while ((match = codeBlockRegex.exec(data.content)) !== null) {
-            // Add text before code block if exists
-            const textBefore = data.content
-              .slice(lastIndex, match.index)
-              .trim();
-            if (textBefore) {
-              newMessages.push({
-                type: "text",
-                role: "assistant",
-                content: textBefore,
-              });
-            }
-
-            // Add code block
-            newMessages.push({
-              type: "code",
-              role: "assistant",
-              content: match[2]
-                .trim()
-                .replace("<think>research_complete: true</think>", ""),
-              language: match[1] || "typescript",
-            });
-
-            lastIndex = match.index + match[0].length;
-          }
-
-          // Add remaining text after last code block
-          const textAfter = data.content.slice(lastIndex).trim();
-          if (textAfter) {
-            newMessages.push({
-              type: "text",
-              role: "assistant",
-              content: textAfter,
-            });
-          }
-
-          // If no code blocks were found, add the entire response as text
-          if (newMessages.length === 0) {
-            newMessages.push({
-              type: "text",
-              role: "assistant",
-              content: data.content,
-            });
-          }
-        }
-
-        setMessages((prev) => [...prev, ...newMessages]);
-        break;
-
-      case "executing_code":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "code",
-            role: "assistant",
-            content: data.code,
-            language: "typescript",
-          },
-        ]);
-        break;
-
-      case "code_result":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "result",
-            role: "assistant",
-            content:
-              typeof data.result === "object"
-                ? JSON.stringify(data.result, null, 2)
-                : data.result,
-          },
-        ]);
-        break;
-
-      case "error":
-        setMessages((prev) => [
-          ...prev,
-          {
-            type: "error",
-            role: "assistant",
-            content: data.message,
-          },
-        ]);
-        break;
-
-      default:
-        console.log("Unknown message type:", data.type);
-    }
-  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -894,17 +687,6 @@ export default function Home() {
           setSocket(ws);
           setConnected(true);
           resolve();
-        };
-
-        ws.onmessage = (event) => {
-
-          // Reuse the same message handling logic
-          try {
-            const data = JSON.parse(event.data);
-            handleServerMessage(data);
-          } catch (err) {
-            console.error("Error parsing WebSocket message", err);
-          }
         };
 
         ws.onclose = () => {
