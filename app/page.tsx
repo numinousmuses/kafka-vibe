@@ -588,7 +588,7 @@ export default function Home() {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email: parsedEmail }),
+            body: JSON.stringify({ }),
           });
 
           if (!res.ok) {
