@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { BACKEND_BASE_URL } from "@/lib/utils"; // or wherever you define it
+import { BACKEND_BASE_URL } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../ui/card";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
 
 interface SignupPageProps {
   setLoginOrSignup: (loginOrSignup: boolean) => void;
@@ -30,12 +33,7 @@ export default function SignupPage({ setLoginOrSignup }: SignupPageProps) {
         throw new Error(data.detail || `Signup failed with status ${res.status}`);
       }
       const data = await res.json();
-      // data is { user_id, email, username } from the LoginResponse
-
-      // Optionally save to localStorage or cookie
       localStorage.setItem("authResponse", JSON.stringify(data));
-
-      // Redirect or route to your main page
       window.location.href = "/";
     } catch (error: any) {
       setErrors(error.message);
@@ -45,50 +43,63 @@ export default function SignupPage({ setLoginOrSignup }: SignupPageProps) {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <form onSubmit={handleSignup} className="space-y-4 p-4 border w-[300px]">
-        <h2 className="text-lg font-semibold">Sign Up</h2>
-        <Button onClick={() => setLoginOrSignup(true)}>
-            Switch to Sign Up
-        </Button>
-        {errors && <p className="text-red-500 text-sm">{errors}</p>}
-        <div>
-          <label className="block mb-1 text-sm">Username</label>
-          <input
-            className="border w-full p-1 text-sm"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-sm">Email</label>
-          <input
-            className="border w-full p-1 text-sm"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-sm">Password</label>
-          <input
-            className="border w-full p-1 text-sm"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          className="bg-blue-500 text-white text-sm px-3 py-1"
-        >
-          {isLoading ? "Signing up..." : "Sign Up"}
-        </button>
-      </form>
+    <div className="dark min-h-screen flex items-center justify-center bg-gradient-to-b from-neutral-900 via-neutral-950 to-black text-neutral-100 w-full">
+      <Card className="w-full max-w-md mx-auto bg-neutral-950 rounded-none">
+        <CardHeader>
+          <CardTitle className="text-xl">Sign Up</CardTitle>
+          <CardDescription>Enter your details to register</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {errors && <p className="text-red-500 text-sm">{errors}</p>}
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="someone@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full mt-4 bg-blue-200">
+              {isLoading ? "Signing up..." : "Sign Up"}
+            </Button>
+          </form>
+          
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-neutral-500">
+            Already have an account? 
+            <Button variant="link" onClick={() => setLoginOrSignup(true)} className="text-xs">
+              Switch to Login
+            </Button>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
