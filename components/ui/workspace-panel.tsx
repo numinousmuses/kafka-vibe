@@ -385,6 +385,8 @@ export function WorkspacePanel({
   const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
+  // Create a local WebSocket ref specifically for the agent chat.
+  const agentWsRef = useRef<WebSocket | null>(null);
 
   // Add these new state variables for the chat functionality
   const [messages, setMessages] = useState<
@@ -480,6 +482,93 @@ export function WorkspacePanel({
       el?.scrollIntoView({ behavior: "smooth", inline: "center" });
     }
   }, [animatedToolIndex]);
+
+  // When Agent tab is active and a file with a flow_id is selected, create a new agent WebSocket connection.
+  useEffect(() => {
+    if (localActivePanel === "agent" && activeTab) {
+      const activeFile = files.find((f) => f.id === activeTab);
+      if (activeFile && activeFile.flow_id && workerId && user_ak) {
+        // Close any existing agent websocket.
+        if (agentWsRef.current) {
+          agentWsRef.current.close();
+        }
+        // Build the connection URL (using wss for production).
+        const wsUrl = `wss://brainbase-engine-python.onrender.com/${workerId}/${activeFile.flow_id}?api_key=${user_ak}`;
+        const ws = new WebSocket(wsUrl);
+        agentWsRef.current = ws;
+
+        ws.onopen = () => {
+          const initData = { streaming: true, deploymentType: "development" };
+          const initMessage = {
+            action: "initialize",
+            data: JSON.stringify(initData),
+          };
+          ws.send(JSON.stringify(initMessage));
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            switch (msg.action) {
+              case "message":
+              case "response":
+                setMessages((prev) => [
+                  ...prev,
+                  { role: "assistant", content: msg.data.message },
+                ]);
+                break;
+              case "stream":
+                // Append streaming text to the last assistant message.
+                setMessages((prev) => {
+                  const lastMessage = prev[prev.length - 1];
+                  if (lastMessage && lastMessage.role === "assistant") {
+                    const updatedMessage = {
+                      ...lastMessage,
+                      content: lastMessage.content + msg.data.message,
+                    };
+                    return [...prev.slice(0, prev.length - 1), updatedMessage];
+                  }
+                  return prev;
+                });
+                break;
+              case "error":
+                setMessages((prev) => [
+                  ...prev,
+                  { role: "assistant", content: "Error: " + msg.data.message },
+                ]);
+                break;
+              case "done":
+                // Optionally handle completion.
+                break;
+              default:
+                console.warn("Unknown action:", msg.action);
+            }
+          } catch (error) {
+            console.error("Error processing message", error);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error("Agent WebSocket error:", error);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", content: "Agent WebSocket error occurred." },
+          ]);
+        };
+
+        ws.onclose = () => {
+          console.log("Agent WebSocket connection closed");
+        };
+      }
+    }
+
+    // Cleanup: close the agent websocket when active file or panel changes.
+    return () => {
+      if (agentWsRef.current) {
+        agentWsRef.current.close();
+      }
+    };
+  }, [localActivePanel, activeTab, files, workerId, user_ak]);
 
   // Add function to open a file from the explorer
   const handleOpenFile = async (file: FileItem) => {
@@ -724,30 +813,33 @@ export function WorkspacePanel({
     });
   };
 
-  // Add this function to handle sending messages
+  // Modified handleSendMessage: send the user message via agentWsRef.
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    // Add user message
-    setMessages([...messages, { role: "user", content: inputMessage }]);
+    // Add the user message to local state.
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: inputMessage },
+    ]);
 
-    // Clear input
-    setInputMessage("");
-
-    // Simulate AI response (in a real app, you'd call your API here)
-    setIsTyping(true);
-    setTimeout(() => {
+    if (
+      agentWsRef.current &&
+      agentWsRef.current.readyState === WebSocket.OPEN
+    ) {
+      const userMsg = {
+        action: "message",
+        data: { message: inputMessage },
+      };
+      agentWsRef.current.send(JSON.stringify(userMsg));
+    } else {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content:
-            "This is a simulated response. In a real application, this would be connected to your AI backend.",
-        },
+        { role: "assistant", content: "Agent connection not established." },
       ]);
-      setIsTyping(false);
-    }, 1000);
+    }
+    setInputMessage("");
   };
 
   const handleUploadWorkspaceFile = async () => {
@@ -1065,6 +1157,26 @@ export function WorkspacePanel({
 
       {localActivePanel === "agent" && (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {/* Agent panel header indicating which file (agent) is active */}
+          <div className="p-4 border-b">
+            {activeTab ? (
+              files.find((f) => f.id === activeTab)?.flow_id ? (
+                <div className="text-sm font-medium">
+                  Chatting with agent:{" "}
+                  {files.find((f) => f.id === activeTab)?.name}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  The selected file does not support agent chat.
+                </div>
+              )
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No file selected for agent chat.
+              </div>
+            )}
+          </div>
+
           <div className="flex-1 overflow-auto p-4">
             <div className="space-y-4 max-w-3xl mx-auto">
               {messages.map((message, index) => (
@@ -1099,7 +1211,7 @@ export function WorkspacePanel({
                   </div>
 
                   {/* Add action buttons for AI messages outside the message box */}
-                  {message.role === "assistant" && (
+                  {/* {message.role === "assistant" && (
                     <div className="flex items-center mt-1 ml-10 gap-2">
                       <Button
                         variant="ghost"
@@ -1116,7 +1228,7 @@ export function WorkspacePanel({
                         <ThumbsDown className="h-3 w-3" />
                       </Button>
                     </div>
-                  )}
+                  )} */}
                 </div>
               ))}
               {isTyping && (
@@ -1143,41 +1255,28 @@ export function WorkspacePanel({
               className="relative max-w-3xl mx-auto"
             >
               {/* Display uploaded files above textarea */}
-              {files.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {files.map((file) => (
+              <div className="mb-2 flex flex-wrap gap-2">
                     <div
-                      key={file.id}
                       className="bg-muted rounded-md px-2 py-1 text-xs flex items-center gap-1"
                     >
-                      {file.type === "image" ? (
-                        <div className="relative w-8 h-8 mr-1">
-                          <img
-                            src={file.url}
-                            alt={file.name}
-                            className="w-full h-full object-cover rounded-sm"
-                          />
-                        </div>
+                      {activeTab ? (
+                        files.find((f) => f.id === activeTab)?.flow_id ? (
+                          <div className="text-sm font-medium">
+                            {/* Chatting with agent:{" "} */}
+                            {files.find((f) => f.id === activeTab)?.name}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">
+                            The selected file does not support agent chat.
+                          </div>
+                        )
                       ) : (
-                        <FileIcon filename={file.name} />
+                        <div className="text-sm text-muted-foreground">
+                          No file selected for agent chat.
+                        </div>
                       )}
-                      <span className="truncate max-w-[150px]">
-                        {file.name}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-4 w-4 p-0"
-                        onClick={() => {
-                          /* Handle removing file reference */
-                        }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
+              </div>
 
               <div
                 className="relative"

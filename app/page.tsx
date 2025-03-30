@@ -1222,7 +1222,7 @@ export default function Home() {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      const res = await fetch(`${BACKEND_BASE_URL}chat/${chatId}?user_ak=${encodeURIComponent(user_ak)}&worker_id=${encodeURIComponent(workerId)}`, {
+      const res = await fetch(`${BACKEND_BASE_URL}chat/${chatId}?user_ak=${encodeURIComponent(user_ak || "")}&worker_id=${encodeURIComponent(workerId || "")}`, {
         method: "DELETE",
       });
       if (!res.ok) {
