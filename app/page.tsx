@@ -35,7 +35,8 @@ import { FileItem, WorkspacePanel } from "@/components/ui/workspace-panel";
 //   updateWorkspaceFiles,
 // } from "@/lib/supabase";
 import { set } from "date-fns";
-const BACKEND_BASE_URL = "http://localhost:8000/";
+import { BACKEND_BASE_URL } from "@/lib/utils";
+
 import {
   Bot,
   ChevronLeft,
@@ -654,11 +655,11 @@ export default function Home() {
         setUserAk(data.brainbase_api_key);
       } catch (error) {
         console.error(error);
-        localStorage.removeItem("authResponse");
-        window.location.href = "/login";
+        // localStorage.removeItem("authResponse");
+        // window.location.href = "/login";
       }
     } else {
-      window.location.href = "/login";
+      // window.location.href = "/login";
     }
   };
 
